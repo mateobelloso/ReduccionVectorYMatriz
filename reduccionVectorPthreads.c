@@ -47,27 +47,19 @@ void * funcion(void * arg)
 			if (tid == 0)
 			{
 				inicio= (tid * N / T) + 1;
+				final= (inicio - 1 + N / T);
+				Vauxiliar[0]= (V[0] + V[1]) * divDos;
 			}else
 			{
 				inicio= (tid * N / T);
-			}
-			if (tid == T - 1)
-			{
-				final= (tid * N / T + N / T) - 1;
-			}else
-			{
-				final= (tid * N / T + N / T);
+				final= (inicio + N / T) - 1;
 			}
 		}else
 		{
 			inicio= tid * N / T;
-			final= tid * N / T + N / T;
+			final= inicio + N / T;
 		}
-		//Valor 0 del vector
-		if (tid == 0)
-		{
-			Vauxiliar[0]= (V[0] + V[1]) * divDos;
-		}
+
 		//Procesamiento general
 		for (int i = inicio; i < final; i++)
 		{
