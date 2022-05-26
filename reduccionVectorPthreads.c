@@ -31,6 +31,7 @@ float * swap;
 int convergio;
 int * convergioV;
 pthread_barrier_t barrera;
+int nroIteraciones;
 
 void * funcion(void * arg)
 {
@@ -39,27 +40,29 @@ void * funcion(void * arg)
 	int final;
 	float comparacion;
 	float primerValor;
-	while(!convergio)
+	//Defino el inicio y fin de cada tarea segun su id
+	if ((tid == 0) || (tid == T - 1))
 	{
-		//Defino el inicio y fin de cada tarea segun su id
-		if ((tid == 0) || (tid == T - 1))
+		if (tid == 0)
 		{
-			if (tid == 0)
-			{
-				inicio= (tid * N / T) + 1;
-				final= (inicio - 1 + N / T);
-				Vauxiliar[0]= (V[0] + V[1]) * divDos;
-			}else
-			{
-				inicio= (tid * N / T);
-				final= (inicio + N / T) - 1;
-			}
+			inicio= (tid * N / T) + 1;
+			final= (inicio - 1 + N / T);
 		}else
 		{
-			inicio= tid * N / T;
-			final= inicio + N / T;
+			inicio= (tid * N / T);
+			final= (inicio + N / T) - 1;
 		}
-
+	}else
+	{
+		inicio= tid * N / T;
+		final= inicio + N / T;
+	}
+	while(!convergio)
+	{
+		if (tid == 0)
+		{
+			Vauxiliar[0]= (V[0] + V[1]) * divDos;
+		}
 		//Procesamiento general
 		for (int i = inicio; i < final; i++)
 		{
@@ -97,7 +100,7 @@ void * funcion(void * arg)
 					break;
 				}
 			}
-			//printf("una iteracion");
+			nroIteraciones++;
 		}
 		pthread_barrier_wait(&barrera);
 		/*while(tid % x == 0)
@@ -130,6 +133,7 @@ int main(int argc, char const *argv[])
 	divDos= 1.0/2.0;
 	divTres= 1.0/3.0;
 	convergio= 0;
+	nroIteraciones= 0;
 
 	V=(float *)malloc(sizeof(float)*N);
 	Vauxiliar=(float *)malloc(sizeof(float)*N);
@@ -155,7 +159,7 @@ int main(int argc, char const *argv[])
 		pthread_join(misPthread[i],NULL);
 	}
 
-	printf("Tiempo en segundos %f\n",dwalltime() - timetick);
+	printf("Tiempo en segundos %f y numero de iteraciones %d\n",dwalltime() - timetick,nroIteraciones);
 	/*printf("Vector resultante:\n");
 	for (int i = 0; i < N; i++)
 	{

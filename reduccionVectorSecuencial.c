@@ -34,6 +34,7 @@ int main(int argc, char const *argv[])
 	float * swap;
 	float primerValor;
 	float comparacion;
+	int nroIteraciones= 0;
 
 	Vauxiliar=(float *)malloc(sizeof(float)*N);
 	Vsecuencial=(float *)malloc(sizeof(float)*N);
@@ -51,12 +52,12 @@ int main(int argc, char const *argv[])
 	while(!convergioSecuencial)
 	{
 		//Procesamiento
-		Vauxiliar[0]= (Vsecuencial[0] + Vsecuencial[1]) * divDos;
+		Vauxiliar[0]= (Vsecuencial[0] + Vsecuencial[1]) >> 1;
 		for (int i = 1; i < N - 1; i++)
 		{
 			Vauxiliar[i]= (Vsecuencial[i-1] + Vsecuencial[i] + Vsecuencial[i+1]) * divTres;
 		}
-		Vauxiliar[N-1]= (Vsecuencial[N-1] + Vsecuencial[N-2]) * divDos;
+		Vauxiliar[N-1]= (Vsecuencial[N-1] + Vsecuencial[N-2]) >> 1;
 		//Swapea los vectores
 		swap= Vsecuencial;
 		Vsecuencial= Vauxiliar;
@@ -73,10 +74,10 @@ int main(int argc, char const *argv[])
 				break;				
 			}
 		}
-
+		nroIteraciones++;
 	}
 
-	printf("REDUCCION DE VECTOR SECUENCIAL: Tiempo en segundos %f\n",dwalltime() - timetick);
+	printf("REDUCCION DE VECTOR SECUENCIAL: Tiempo en segundos %f y numero de iteraciones %d\n",dwalltime() - timetick,nroIteraciones);
 
 	/*printf("Vector resultante:\n");
 	for (int i = 0; i < N; i++)
