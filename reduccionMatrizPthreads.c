@@ -151,10 +151,13 @@ int main(int argc, char const *argv[])
 
 	pthread_barrier_init(&barrera,NULL,T);
 
-	for (int i = 0; i < N*N; i++)
-	{
-		M[i]= randFP(0.0,1.0);
-	}
+	for(int i=0; i<N; i++)
+    {
+        for(int j=0; j<N; j++)
+        {
+            M[i*N+j] = randFP(0.0,1.0);
+        }
+    }
 
 	timetick= dwalltime();
 	for (int id = 0; id < T; id++)

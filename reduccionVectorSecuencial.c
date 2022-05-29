@@ -52,12 +52,12 @@ int main(int argc, char const *argv[])
 	while(!convergioSecuencial)
 	{
 		//Procesamiento
-		Vauxiliar[0]= (Vsecuencial[0] + Vsecuencial[1]) >> 1;
+		Vauxiliar[0]= (Vsecuencial[0] + Vsecuencial[1]) *divDos;
 		for (int i = 1; i < N - 1; i++)
 		{
 			Vauxiliar[i]= (Vsecuencial[i-1] + Vsecuencial[i] + Vsecuencial[i+1]) * divTres;
 		}
-		Vauxiliar[N-1]= (Vsecuencial[N-1] + Vsecuencial[N-2]) >> 1;
+		Vauxiliar[N-1]= (Vsecuencial[N-1] + Vsecuencial[N-2]) *divDos;
 		//Swapea los vectores
 		swap= Vsecuencial;
 		Vsecuencial= Vauxiliar;
