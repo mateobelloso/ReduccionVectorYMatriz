@@ -38,6 +38,7 @@ float primerValor;
 float divCuatro= 1.0/4.0;
 float divSeis= 1.0/6.0;
 float divNueve= 1.0/9.0;
+long int cantidad;
 
 void fProcesoRoot()
 {
@@ -75,6 +76,8 @@ void fProcesoRoot()
         MPI_Scatter(M,N*N/nrProcesos,MPI_FLOAT,MRec,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
         MPI_Send(&MRec[N*N/nrProcesos-N],N,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD);
         MPI_Recv(filaVecAbajo,N,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+
+
 
         /*printf("Soy el proceso %d y me llego esta fila:\n",miID);
         for (int i = 0; i < N; i++)
@@ -171,9 +174,9 @@ void fProcesoDelMedio()
     while(!convergio)
     {
         MPI_Scatter(M,N*N/nrProcesos,MPI_FLOAT,MRec,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
+        MPI_Recv(filaVecArriba,N,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
         MPI_Send(&MRec[0],N,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD);
         MPI_Send(&MRec[N*N/nrProcesos-N],N,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD);
-        MPI_Recv(filaVecArriba,N,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
         MPI_Recv(filaVecAbajo,N,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
         Maux[0]= (  filaVecArriba[0] + filaVecArriba[1] +
@@ -254,9 +257,9 @@ void fProcesoUltimo()
     while(!convergio)
     {
         MPI_Scatter(M,N*N/nrProcesos,MPI_FLOAT,MRec,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
+        MPI_Recv(filaVecArriba,N,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
         MPI_Send(&MRec[0],N,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD);
         //MPI_Send(&VRec[N/nrProcesos-1],1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD);
-        MPI_Recv(filaVecArriba,N,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
         //MPI_Recv(&vecinoDer,1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
         Maux[0]= (  filaVecArriba[0] + filaVecArriba[1] +
@@ -345,11 +348,15 @@ int main(int argc, char* argv[]){
         if (miID == 0)
         {
             fProcesoRoot();
+            free(M);
         }else
         {
             fProcesoUltimo();
         }
     }
+
+    free(MRec);
+    free(Maux);
     
     MPI_Finalize();
     return 0;

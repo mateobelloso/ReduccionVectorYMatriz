@@ -5,6 +5,9 @@
 #define VALORPRECISIONP 0.01
 #define VALORPRECISIONN -0.01
 
+/***************************************
+ FUNCION PARA CALCULAR TIEMPO
+ ***************************************/
 //Para calcular tiempo
 double dwalltime()
 {
@@ -15,7 +18,10 @@ double dwalltime()
 	return sec;
 }
 
-//Funcion para obtener un valor random
+
+/***************************************
+ 	FUNCION QUE RETORNA UN VALOR RANDOM
+ ***************************************/
 double randFP(double min, double max) 
 { 
 	double range = (max - min); 
@@ -23,8 +29,13 @@ double randFP(double min, double max)
 	return min + (rand() / div); 
 }
 
+
+/***************************************
+			FUNCION MAIN
+ ***************************************/
 int main(int argc, char const *argv[])
 {
+	/* DECLARACION DE VARIABLES */
 	int N= atoi(argv[1]);
 	double timetick;
 	float divDos= 1.0/2.0;
@@ -36,9 +47,12 @@ int main(int argc, char const *argv[])
 	float comparacion;
 	int nroIteraciones= 0;
 
+
+	/* ALOCACION DE MEMORIA DE LOS VECTORES */
 	Vauxiliar=(float *)malloc(sizeof(float)*N);
 	Vsecuencial=(float *)malloc(sizeof(float)*N);
 
+	/* INICIALIZACION DEL VECTOR */
 	for (int i = 0; i < N; i++)
 	{
 		Vsecuencial[i]= randFP(0.0,1.0);
@@ -46,23 +60,27 @@ int main(int argc, char const *argv[])
 
 	printf("Calculando...\n");
 
-	//SECUENCIAL
+	/* COMIENZA LA REDUCCION */
 	int convergioSecuencial= 0;
-	timetick= dwalltime();
+	timetick= dwalltime();	//ARRANCA A CONTAR EL TIEMPO
 	while(!convergioSecuencial)
 	{
-		//Procesamiento
+		//PROMEDIO DEL PRIMER VALOR
 		Vauxiliar[0]= (Vsecuencial[0] + Vsecuencial[1]) *divDos;
+		//PROMEDIO VALORES INTERMEDIOS
 		for (int i = 1; i < N - 1; i++)
 		{
 			Vauxiliar[i]= (Vsecuencial[i-1] + Vsecuencial[i] + Vsecuencial[i+1]) * divTres;
 		}
+		//PROMEDIO ULTIMO VALOR
 		Vauxiliar[N-1]= (Vsecuencial[N-1] + Vsecuencial[N-2]) *divDos;
-		//Swapea los vectores
+
+		//SWAPEO DE VECTORES
 		swap= Vsecuencial;
 		Vsecuencial= Vauxiliar;
 		Vauxiliar= swap;
-		//Evalua si convergio el vector
+
+		//CHEQUEO DE CONVERGENCIA DEL VECTOR
 		convergioSecuencial= 1;
 		primerValor= Vsecuencial[0];
 		for (int i = 0; i < N; i++)
@@ -74,18 +92,25 @@ int main(int argc, char const *argv[])
 				break;				
 			}
 		}
+
+		//INCREMENTA NUMERO DE ITERACIONES
 		nroIteraciones++;
 	}
 
+	//IMPRIME RESULTADO EN TIEMPO Y NUMERO DE ITERACIONES
 	printf("REDUCCION DE VECTOR SECUENCIAL: Tiempo en segundos %f y numero de iteraciones %d\n",dwalltime() - timetick,nroIteraciones);
 
+
+	//DESCOMENTAR SI SE QUIERE IMPRIMIR EL VECTOR AL QUE CONVERGIO
 	/*printf("Vector resultante:\n");
 	for (int i = 0; i < N; i++)
 	{
 		printf("%f, ",Vsecuencial[i]);
 	}*/
 
+	//LIBERACION DE MEMORIA
 	free(Vsecuencial);
+	free(Vauxiliar);
 
 	return 0;
 }

@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     int converge;
     int N;
     double timetick;
-    double diferencia;
+    float diferencia;
     float divCuatro, divSeis, divNueve;
     int nroIteraciones= 0;
 

@@ -68,14 +68,14 @@ void * funcion(void * arg)
 		//Tercera y cuarta esquina
 		if (tid == T-1)
 		{
-			Maux[(N*N)-1]= (M[((N-1)*N - 2)] + M[((N-1)*N -1)] + M[(N*N)-2] + M[(N*N)-1]) * divCuatro;
+			Maux[N*(N-1)]= (M[N*(N-2)] + M[(N*(N-2))+1] + M[N*(N-1)] + M[(N*(N-1))+1]) * divCuatro;
 			for (int i = 1; i < N-1; i++)
 			{
-
 				Maux[(N-1)*N + i] = ( M[(N-1-1)*N + i-1] +    M[(N-1-1)*N + i] + M[(N-1-1)*N + i+1]
                             +   M[(N-1)*N + i-1] +      M[(N-1)*N + i] + M[(N-1)*N + i+1]) * divSeis;
 			}
-			Maux[N*(N-1)]= (M[N*(N-2)] + M[(N*(N-2))+1] + M[N*(N-1)] + M[(N*(N-1))+1]) * divCuatro;
+			//Maux[(N*N)-1]= (M[((N-1)*N - 2)] + M[((N-1)*N -1)] + M[(N*N)-2] + M[(N*N)-1]) * divCuatro;
+			Maux[(N-1)*N+ N-1] = ( M[(N-1)*N + N-1-1] + M[(N-1)*N + N-1] + M[(N-1-1)*N + N-1] + M[(N-1-1)*N + N-1-1] ) * divCuatro;
 		}
 		for (int i = inicio; i < final; i++)
 		{
