@@ -27,7 +27,7 @@ double randFP(double min, double max)
 	return min + (rand() / div); 
 }
 
-//Variables
+//DECLARACION DE VARIABLES
 float *M, *Maux;
 float *swap;
 int * convergioV;
@@ -37,7 +37,7 @@ float divCuatro, divSeis, divNueve;
 int nroIteraciones;
 pthread_barrier_t barrera;
 
-
+//FUNCION QUE EJECUTA CADA TAREA
 void * funcion(void * arg)
 {
 	int tid= *(int *)arg;
@@ -46,19 +46,21 @@ void * funcion(void * arg)
 	float comparacion;
 	float primerValor;
 
+	//INICIO Y FINAL DE FILA A PROCESAR DE CADA TAREA
 	inicio= tid * N / T;
 	final= inicio + N /T;
-	if (tid==0)
+	if (tid==0)	//LA TAREA 0 VA A COMENZAR A PROCESAR 1 FILA DESPUES YA QUE LA PRIMERA LA HACE APARTE
 	{
 		inicio++;
 	}
-	if (tid==T-1)
+	if (tid==T-1)	//LA TAREA ULTIMA VA A TERMINAR DE PROCESAR 1 FILA ANTES A QUE LA ULTIMA FILA LA HACE APARTE
 	{
 		final--;
 	}
+	//MIENTRA NO CONVERGA
 	while(!convergio)
 	{
-		//Primera y segunda esquina
+		//PRIMERA Y SEGUNDA ESQUINA Y BANDA LATERAL SUPERIOR
 		if (tid == 0)
 		{
 			Maux[0]= (M[0] + M[1] + M[N] + M[N+1]) * divCuatro;
@@ -69,24 +71,29 @@ void * funcion(void * arg)
 			}
 			Maux[N-1]= (M[N-2] + M[N-1] + M[2*N - 2] + M[2*N -1]) * divCuatro;
 		}
+
+		//PROCESAMIENTO DE VALORES INTERMEDIOS
 		for (int i = inicio; i < final; i++)
 		{
+			//BANDA LATERAL IZQUIERDA
 			Maux[i*N] = ( M[(i-1)*N] +    M[(i-1)*N + 1] +
                         M[i*N] +        M[i*N + 1] +
                         M[(i+1)*N] +    M[(i+1)*N + 1] ) * divSeis;
 
-            Maux[i*N + (N-1)] = ( M[i*N - 2] +    M[i*N-1] +
-                                M[ i*N + (N-2)] +        M[i*N + (N-1)] +
-                                M[(i+1)*N + (N-2)] +    M[(i+1)*N + (N-1)] ) * divSeis;
-
+            //VALORES INTERMEDIOS
 			for (int j = 1; j < N-1; j++)
 			{
 				Maux[i*N+j] = ( M[(i-1)*N+ (j-1)] +     M[(i-1)*N+(j)] +        M[(i-1)*N+ (j+1)] 
                         +       M[(i)*N+ (j-1)] +       M[(i)*N+ j] +           M[(i)*N+  (j+1)]
                         +       M[(i+1)*N+ (j-1)] +     M[(i+1)*N+ (j)] +       M[(i+1)*N+ (j+1)]) * divNueve;
 			}	
+
+			//BANDA LATERAL DERECHA
+            Maux[i*N + (N-1)] = ( M[i*N - 2] +    M[i*N-1] +
+                                M[ i*N + (N-2)] +        M[i*N + (N-1)] +
+                                M[(i+1)*N + (N-2)] +    M[(i+1)*N + (N-1)] ) * divSeis;
 		}
-		//Tercera y cuarta esquina
+		//TERCERA Y CUARTA ESQUINA Y BANDA LATERAL INFERIOR
 		if (tid == T-1)
 		{
 			Maux[N*(N-1)]= (M[N*(N-2)] + M[(N*(N-2))+1] + M[N*(N-1)] + M[(N*(N-1))+1]) * divCuatro;
@@ -97,8 +104,13 @@ void * funcion(void * arg)
 			}
 			Maux[(N-1)*N+ N-1] = ( M[(N-1)*N + N-1-1] + M[(N-1)*N + N-1] + M[(N-1-1)*N + N-1] + M[(N-1-1)*N + N-1-1] ) * divCuatro;
 		}
+		//ESPERO QUE TODAS LAS TAREAS TERMINEN SU PROCESAMIENTO YA QUE NECESITO EL RESULTADO DE LA PRIMERA POSICION PARA CHEQUEAR CONVERGENCIA
 		pthread_barrier_wait(&barrera);
+
+		//ME GUARDO EL RESULTADO DEL PRIMER VALOR
 		primerValor= Maux[0];
+
+		//CHEQUEO SI MI PARTE CONVERGIO
 		convergioV[tid]= 1;
 		for (int i = tid * N * N / T; i < tid * N * N / T + N * N / T; i++)
 		{
@@ -109,7 +121,10 @@ void * funcion(void * arg)
 				break;
 			}
 		}
+		//ESPERO QUE TODAS LAS TAREAS TERMINEN DE CHEQUEAR LA CONVERGENCIA DE SU PARTE
 		pthread_barrier_wait(&barrera);
+
+		//LA TAREA 0 REALIZA EL SWAPEO Y CHEQUEA SI TODAS LAS TAREAS CONVERGIERON
 		if (tid == 0)
 		{
 			swap= M;
@@ -126,6 +141,7 @@ void * funcion(void * arg)
 			}
 			nroIteraciones++;
 		}
+		//LAS DEMAS TAREAS ESPERAN A LA TAREA 0 QUE SWAPE LAS MATRICES Y EL CHEQUEO DE CONVERGENCIA TOTAL
 		pthread_barrier_wait(&barrera);
 	}
 
@@ -152,12 +168,15 @@ int main(int argc, char const *argv[])
 	convergio= 0;
 	nroIteraciones= 0;
 
+	//ALOCACION DE MEMORIA PARA LAS MATRICES Y EL VECTOR DE CONVERGENCIA
 	M=(float *)malloc(sizeof(float)*N*N);
 	Maux=(float *)malloc(sizeof(float)*N*N);
 	convergioV=(int *)malloc(sizeof(int)*T);
 
+	//INICIALIZACION DE LA BARRERA
 	pthread_barrier_init(&barrera,NULL,T);
 
+	//INICIALIZACION DE LA MATRIZ
 	for(int i=0; i<N; i++)
     {
         for(int j=0; j<N; j++)
@@ -166,6 +185,7 @@ int main(int argc, char const *argv[])
         }
     }
 
+    //ARRANCO A CONTAR EL TIEMPO, CREO LAS TAREAS Y LES PASO SU ID Y ARRANCAN A PROCESAR
 	timetick= dwalltime();
 	for (int id = 0; id < T; id++)
 	{
@@ -173,12 +193,13 @@ int main(int argc, char const *argv[])
 		pthread_create(&misPthread[id],NULL,&funcion,(void *)&threads_id[id]);
 	}
 
+	//JOIN DE CADA TAREA
 	for (int i = 0; i < T; i++)
 	{
 		pthread_join(misPthread[i],NULL);
 	}
 
-
+	//PARO DE CONTAR EL TIEMPO SE TERMINO EL PROCESAMIENTO
 	tiempoEnSeg= dwalltime() - timetick;
 	//DESCOMENTAR SI SE QUIERE IMPRIMIR EL RESULTADO
 

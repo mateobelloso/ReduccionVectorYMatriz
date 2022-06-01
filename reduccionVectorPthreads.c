@@ -97,7 +97,9 @@ void * funcion(void * arg)
 				break;				
 			}
 		}
+		//TODAS LAS TAREAS ESPERAN A LAS DEMAS QUE TERMINEN DE CHEQUEAR LA CONVERGENCIA DE SU PARTE
 		pthread_barrier_wait(&barrera);
+		//LA TAREA 0 REALIZA EL SWAPEO DE LOS VECTORES Y VERIFICA SI TODAS LAS TAREAS CONVERGIERON
 		if (tid == 0)
 		{
 			swap= V;
@@ -114,6 +116,7 @@ void * funcion(void * arg)
 			}
 			nroIteraciones++;
 		}
+		//LAS DEMAS TAREAS ESPERAN QUE LA TAREA 0 HAGA EL SWAPEO Y CHEQUEE LA CONVERGENCIA TOTAL
 		pthread_barrier_wait(&barrera);
 	}
 	

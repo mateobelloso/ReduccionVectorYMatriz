@@ -27,7 +27,7 @@ double randFP(double min, double max)
     return min + (rand() / div); 
 }
 
-
+//DECLARACION DE VARIABLES
 int miID;
 int nrProcesos;
 int N;
@@ -40,6 +40,7 @@ float primerValor;
 float divDos= 1.0/2.0;
 float divTres= 1.0/3.0;
 
+//FUNCION PROCESO ROOT
 void fProcesoRoot()
 {
     float vecinoDer;
@@ -48,30 +49,42 @@ void fProcesoRoot()
     double tiempoEnSeg;
     int nroIteraciones= 0;
     
+    //ALOCACION DE MEMORIA PARA EL VECTOR DE TAMAÑO N
     V=(float *)malloc(sizeof(float)*N);
+
+    //INICIALIZACION DEL VECTOR
     for (int i = 0; i < N; i++)
     {
         V[i]= randFP(0.0,1.0);
     }
 
+    //COMIENZO A CONTAR TIEMPO ARRANCA EL PROCESAMIENTO
     timetick= dwalltime();
     while(!convergio)
     {
+        //DIVIDO PARA CADA PROCESO LA CANTIDAD DE VALORES DEL VECTOR QUE LE TOCAN LO VAN A RECIBIR EN LA VARIABLE VRec
         MPI_Scatter(V,N/nrProcesos,MPI_FLOAT,VRec,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
+        //LE ENVIO A MI PROCESO SIGUIENTE MI ULTIMO VALOR
         MPI_Send(&VRec[N/nrProcesos-1],1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD);
+        //RECIBO DE MI PROCESO SIGUIENTE SU PRIME VALOR
         MPI_Recv(&vecinoDer,1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
+        //PROCESAMIENTO PRIMERA POSICION
         Vaux[0]= (VRec[0] + VRec[1]) * divDos;
         
+        //PROCESAMIENTO VALORES INTERMEDIOS
         for (int i = 1; i < ((N/nrProcesos)-1); i++)
         {
             Vaux[i]= (VRec[i-1] + VRec[i] + VRec[i+1]) * divTres;
         }
+
+        //PROCESAMIENTO DE MI ULTIMO VALOR
         Vaux[N/nrProcesos-1]= (VRec[N/nrProcesos-2] + VRec[N/nrProcesos-1] + vecinoDer) * divTres;
 
+        //LE ENVIO A TODOS LOS PROCESOS EL RESULTADO DE MI PRIMERA POSICION
         MPI_Bcast(&Vaux[0],1,MPI_FLOAT,0,MPI_COMM_WORLD);
 
-        
+        //CHEQUEO SI CONVIRGIO MI PARTE
         convergioaux=1;
         for(int i = 1; i < N/nrProcesos; i++)
         {
@@ -83,12 +96,15 @@ void fProcesoRoot()
             }
         }
 
+        //A TRAVES DEL ALLREDUCE SE CHEQUEA LA CONVERGENCIA DE TODOS LOS PROCESOS Y EL RESULTADO LO OBTIENEN TODOS
         MPI_Allreduce(&convergioaux,&convergio,1,MPI_INT,MPI_LAND,MPI_COMM_WORLD);
 
+        //REALIZO EL GATTER PARA OBTENER EL RESULTADO DE CADA PROCESO Y LO RECIBO EN LA VARIABLE DEL VECTOR
         MPI_Gather(Vaux,N/nrProcesos,MPI_FLOAT,V,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
         nroIteraciones++;
     }
 
+    //TERMINO EL PROCESAMIENTO PARO DE CONTAR
     tiempoEnSeg= dwalltime() - timetick;
     //DESCOMENTAR SI SE QUIERE IMPRIMIR EL VECTOR RESULTADO
     /*printf("Resultado:\n");
@@ -99,28 +115,41 @@ void fProcesoRoot()
     printf("\nEl tiempo en segundos es %f y se realizaron %d iteraciones\n",tiempoEnSeg,nroIteraciones);
 }
 
+//FUNCION PROCESOS DEL MEDIO
 void fProcesoDelMedio()
 {
     float vecinoIzq, vecinoDer;
     float comparacion;
     while(!convergio)
     {
+        //RECIBO EN M VARIABLE VRec LOS VALORES QUE TENGO QUE PROCESAR
         MPI_Scatter(V,N/nrProcesos,MPI_FLOAT,VRec,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
+
+        //LE ENVIO A MI PROCESO ANTERIOR MI PRIMERA POSICION
         MPI_Send(&VRec[0],1,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD);
+        //LE ENVIO A MI PROCESO SIGUIENTE MI ULTIMA POSICION
         MPI_Send(&VRec[N/nrProcesos-1],1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD);
+        //RECIBO DE MI PROCESO ANTERIOR SU ULTIMA POSICION
         MPI_Recv(&vecinoIzq,1,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+        //RECIBO DE MI PROCESO SIGUIENTE SU PRIMERA POSICION
         MPI_Recv(&vecinoDer,1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-        
+        //PROCESO MI PRIMER VALOR
         Vaux[0]= (vecinoIzq + VRec[0] + VRec[1]) * divTres;
+
+        //PROCESAMIENTO DE LOS VALORES INTERMEDIOS
         for (int i = 1; i < ((N/nrProcesos)-1); i++)
         {
             Vaux[i]= (VRec[i-1] + VRec[i] + VRec[i+1]) * divTres;
         }
+
+        //PROCESAMIENTO DE MI ULTIMO VALOR
         Vaux[N/nrProcesos-1]= (VRec[N/nrProcesos-2] + VRec[N/nrProcesos-1] + vecinoDer) * divTres;
 
+        //RECIBO EL RESULTADO DEL PRIMER VALOR DE LA MATRIZ
         MPI_Bcast(&primerValor,1,MPI_FLOAT,0,MPI_COMM_WORLD);
         
+        //CHEQUEO SI CONVERGIO MI PARTE
         convergioaux=1;
         for(int i = 1; i < N/nrProcesos; i++)
         {
@@ -132,11 +161,11 @@ void fProcesoDelMedio()
             }
         }
 
+        //SE CHEQUEA LA CONVERGENCIA TOTAL
         MPI_Allreduce(&convergioaux,&convergio,1,MPI_INT,MPI_LAND,MPI_COMM_WORLD);
 
-        MPI_Gather(Vaux,N/nrProcesos,MPI_FLOAT,V,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
-
-        
+        //SE ENVIA LA PARTE PROCESADA AL PROCESO 0 PARA QUE OBTENGA TODO EL VECTOR PROCESADO
+        MPI_Gather(Vaux,N/nrProcesos,MPI_FLOAT,V,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);      
     }
 }
 
@@ -146,20 +175,31 @@ void fProcesoUltimo()
     float comparacion;
     while(!convergio)
     {
+        //RECIBO EN MI VRec LOS VALORES QUE ME TOCAN PROCESAR
         MPI_Scatter(V,N/nrProcesos,MPI_FLOAT,VRec,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
+
+        //LE ENVIO A MI PROCESO ANTERIOR MI PRIMERA POSICION
         MPI_Send(&VRec[0],1,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD);
+
+        //RECIBO DE MI PROCESO ANTERIOR SU ULTIMA POSICION
         MPI_Recv(&vecinoIzq,1,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-        
+        //PROCESAMIENTO DE MI PRIMER VALOR
         Vaux[0]= (vecinoIzq + VRec[0] + VRec[1]) * divTres;
+
+        //PROCESAMIENTO DE VALORES INTERMEDIOS
         for (int i = 1; i < ((N/nrProcesos)-1); i++)
         {
             Vaux[i]= (VRec[i-1] + VRec[i] + VRec[i+1]) * divTres;
         }
+
+        //PROCESAMIENTO DE EL ULTIMO VALOR DEL VECTOR
         Vaux[N/nrProcesos-1]= (VRec[N/nrProcesos-2] + VRec[N/nrProcesos-1]) * divDos;
 
+        //RECIBO EL RESULTADO DE LA PRIMERA POSICION
         MPI_Bcast(&primerValor,1,MPI_FLOAT,0,MPI_COMM_WORLD);
         
+        //CHEQUEO SI MI PARTE CONVERGIO
         convergioaux=1;
         for(int i = 1; i < N/nrProcesos; i++)
         {
@@ -171,8 +211,10 @@ void fProcesoUltimo()
             }
         }
 
+        //SE OBTIENE EL RESULTADO DE LA CONVERGENCIA TOTAL
         MPI_Allreduce(&convergioaux,&convergio,1,MPI_INT,MPI_LAND,MPI_COMM_WORLD);
 
+        //SE LE MANDA AL PROCESO 0 EL RESULTADO DEL VECTOR PARA QUE ESTE OBTENGA EL RESULTADO TOTAL
         MPI_Gather(Vaux,N/nrProcesos,MPI_FLOAT,V,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
 
         
@@ -189,21 +231,25 @@ int main(int argc, char* argv[]){
     MPI_Comm_rank(MPI_COMM_WORLD,&miID);
     MPI_Comm_size(MPI_COMM_WORLD,&nrProcesos);
 
+    //ALOCACION DE MEMORIA DE LOS VECTORES QUE RECIBE CADA PROCESO Y SU VECTOR AUXILIAR
     VRec=(float *)malloc(sizeof(float)*N/nrProcesos);
     Vaux=(float *)malloc(sizeof(float)*N/nrProcesos);
+
+    //VARIABLE PARA INDICAR SI LA MATRIZ CONVERGIO
     convergio=0;
 
-    
+    //SI NO SOY EL PROCESO 0 NI EL ULTIMO SOY UN PROCESO DEL MEDIO
     if((miID != 0) && (miID != nrProcesos-1))
     {
         fProcesoDelMedio();
     }
     else
     {
+        //SOY EL PROCESO 0
         if (miID == 0)
         {
             fProcesoRoot();
-        }else
+        }else   //SOY EL ULTIMO PROCESO
         {
             fProcesoUltimo();
         }
