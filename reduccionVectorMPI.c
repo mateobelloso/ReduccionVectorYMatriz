@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/time.h>
 #include<mpi.h>
-#define VALORPRECISIONP 0.01
-#define VALORPRECISIONN -0.01
+#define VALORPRECISIONP 0.01    //VALOR DE PRECISION POSITIVO
+#define VALORPRECISIONN -0.01   //VALOR DE PRECISION NEGATIVO
 
-//Para calcular tiempo
+/***************************************
+ FUNCION PARA CALCULAR TIEMPO
+ ***************************************/
 double dwalltime()
 {
     double sec;
@@ -16,7 +17,9 @@ double dwalltime()
     return sec;
 }
 
-//Funcion para obtener un valor random
+/***************************************
+    FUNCION QUE RETORNA UN VALOR RANDOM
+ ***************************************/
 double randFP(double min, double max) 
 { 
     double range = (max - min); 
@@ -30,7 +33,6 @@ int nrProcesos;
 int N;
 int convergio;
 int convergioaux;
-char message[20];
 float *VRec;
 float *V;
 float *Vaux;
@@ -43,6 +45,7 @@ void fProcesoRoot()
     float vecinoDer;
     float comparacion;
     double timetick;
+    double tiempoEnSeg;
     int nroIteraciones= 0;
     
     V=(float *)malloc(sizeof(float)*N);
@@ -50,12 +53,6 @@ void fProcesoRoot()
     {
         V[i]= randFP(0.0,1.0);
     }
-    
-    //primerValor= Vaux[0];
-    /*for (int i = 0; i < N; i++)
-    {
-        printf("%f\n",V[i]);
-    }*/
 
     timetick= dwalltime();
     while(!convergio)
@@ -63,8 +60,6 @@ void fProcesoRoot()
         MPI_Scatter(V,N/nrProcesos,MPI_FLOAT,VRec,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
         MPI_Send(&VRec[N/nrProcesos-1],1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD);
         MPI_Recv(&vecinoDer,1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-
-        //printf("llegue vecinoDer: %f",vecinoDer);
 
         Vaux[0]= (VRec[0] + VRec[1]) * divDos;
         
@@ -89,28 +84,19 @@ void fProcesoRoot()
         }
 
         MPI_Allreduce(&convergioaux,&convergio,1,MPI_INT,MPI_LAND,MPI_COMM_WORLD);
-        /*swap= V;
-        V= Vaux;
-        Vaux= swap;*/
 
         MPI_Gather(Vaux,N/nrProcesos,MPI_FLOAT,V,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
         nroIteraciones++;
     }
 
-    printf("Resultado:\n");
+    tiempoEnSeg= dwalltime() - timetick;
+    //DESCOMENTAR SI SE QUIERE IMPRIMIR EL VECTOR RESULTADO
+    /*printf("Resultado:\n");
     for (int i = 0; i < N; i++)
     {
         printf("%f, ",V[i]);
-    }
-    printf("\nEl tiempo en segundos es %f y se realizaron %d iteraciones\n",dwalltime()-timetick,nroIteraciones);
-
-    /*
-    strcpy(message,"Hola MPI");
-    for (int i = 1; i < nrProcesos; ++i)
-    {
-        MPI_Send(message,strlen(message)+1,MPI_CHAR,i,99,MPI_COMM_WORLD);
-    }
-    printf("%s soy el proceso %d\n",message,miID);*/
+    }*/
+    printf("\nEl tiempo en segundos es %f y se realizaron %d iteraciones\n",tiempoEnSeg,nroIteraciones);
 }
 
 void fProcesoDelMedio()
@@ -125,8 +111,6 @@ void fProcesoDelMedio()
         MPI_Recv(&vecinoIzq,1,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
         MPI_Recv(&vecinoDer,1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-        //printf("llegue vecinoIzq: %f",vecinoIzq);
-
         
         Vaux[0]= (vecinoIzq + VRec[0] + VRec[1]) * divTres;
         for (int i = 1; i < ((N/nrProcesos)-1); i++)
@@ -136,7 +120,6 @@ void fProcesoDelMedio()
         Vaux[N/nrProcesos-1]= (VRec[N/nrProcesos-2] + VRec[N/nrProcesos-1] + vecinoDer) * divTres;
 
         MPI_Bcast(&primerValor,1,MPI_FLOAT,0,MPI_COMM_WORLD);
-        //printf("llego %f",primerValor);
         
         convergioaux=1;
         for(int i = 1; i < N/nrProcesos; i++)
@@ -150,9 +133,6 @@ void fProcesoDelMedio()
         }
 
         MPI_Allreduce(&convergioaux,&convergio,1,MPI_INT,MPI_LAND,MPI_COMM_WORLD);
-        /*swap= V;
-        V= Vaux;
-        Vaux= swap;*/
 
         MPI_Gather(Vaux,N/nrProcesos,MPI_FLOAT,V,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
 
@@ -168,11 +148,7 @@ void fProcesoUltimo()
     {
         MPI_Scatter(V,N/nrProcesos,MPI_FLOAT,VRec,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
         MPI_Send(&VRec[0],1,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD);
-        //MPI_Send(&VRec[N/nrProcesos-1],1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD);
         MPI_Recv(&vecinoIzq,1,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-        //MPI_Recv(&vecinoDer,1,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-
-        //printf("llegue vecinoIzq: %f",vecinoIzq);
 
         
         Vaux[0]= (vecinoIzq + VRec[0] + VRec[1]) * divTres;
@@ -183,7 +159,6 @@ void fProcesoUltimo()
         Vaux[N/nrProcesos-1]= (VRec[N/nrProcesos-2] + VRec[N/nrProcesos-1]) * divDos;
 
         MPI_Bcast(&primerValor,1,MPI_FLOAT,0,MPI_COMM_WORLD);
-        //printf("llego %f",primerValor);
         
         convergioaux=1;
         for(int i = 1; i < N/nrProcesos; i++)
@@ -197,9 +172,6 @@ void fProcesoUltimo()
         }
 
         MPI_Allreduce(&convergioaux,&convergio,1,MPI_INT,MPI_LAND,MPI_COMM_WORLD);
-        /*swap= V;
-        V= Vaux;
-        Vaux= swap;*/
 
         MPI_Gather(Vaux,N/nrProcesos,MPI_FLOAT,V,N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
 
@@ -207,6 +179,10 @@ void fProcesoUltimo()
     }
 }
 
+
+/***************************************
+            FUNCION MAIN
+ ***************************************/
 int main(int argc, char* argv[]){
     N= atoi(argv[1]);
     MPI_Init(&argc, &argv);

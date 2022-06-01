@@ -2,10 +2,12 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/time.h>
-#define VALORPRECISIONP 0.01
-#define VALORPRECISIONN -0.01
+#define VALORPRECISIONP 0.01 	//VALOR DE PRECISION POSITIVO
+#define VALORPRECISIONN -0.01 	//VALOR DE PRECISION NEGATIVO
 
-//Para calcular tiempo
+/***************************************
+ FUNCION PARA CALCULAR TIEMPO
+ ***************************************/
 double dwalltime()
 {
 	double sec;
@@ -15,7 +17,9 @@ double dwalltime()
 	return sec;
 }
 
-//Funcion para obtener un valor random
+/***************************************
+ 	FUNCION QUE RETORNA UN VALOR RANDOM
+ ***************************************/
 double randFP(double min, double max) 
 { 
 	double range = (max - min); 
@@ -65,18 +69,6 @@ void * funcion(void * arg)
 			}
 			Maux[N-1]= (M[N-2] + M[N-1] + M[2*N - 2] + M[2*N -1]) * divCuatro;
 		}
-		//Tercera y cuarta esquina
-		if (tid == T-1)
-		{
-			Maux[N*(N-1)]= (M[N*(N-2)] + M[(N*(N-2))+1] + M[N*(N-1)] + M[(N*(N-1))+1]) * divCuatro;
-			for (int i = 1; i < N-1; i++)
-			{
-				Maux[(N-1)*N + i] = ( M[(N-1-1)*N + i-1] +    M[(N-1-1)*N + i] + M[(N-1-1)*N + i+1]
-                            +   M[(N-1)*N + i-1] +      M[(N-1)*N + i] + M[(N-1)*N + i+1]) * divSeis;
-			}
-			//Maux[(N*N)-1]= (M[((N-1)*N - 2)] + M[((N-1)*N -1)] + M[(N*N)-2] + M[(N*N)-1]) * divCuatro;
-			Maux[(N-1)*N+ N-1] = ( M[(N-1)*N + N-1-1] + M[(N-1)*N + N-1] + M[(N-1-1)*N + N-1] + M[(N-1-1)*N + N-1-1] ) * divCuatro;
-		}
 		for (int i = inicio; i < final; i++)
 		{
 			Maux[i*N] = ( M[(i-1)*N] +    M[(i-1)*N + 1] +
@@ -93,6 +85,17 @@ void * funcion(void * arg)
                         +       M[(i)*N+ (j-1)] +       M[(i)*N+ j] +           M[(i)*N+  (j+1)]
                         +       M[(i+1)*N+ (j-1)] +     M[(i+1)*N+ (j)] +       M[(i+1)*N+ (j+1)]) * divNueve;
 			}	
+		}
+		//Tercera y cuarta esquina
+		if (tid == T-1)
+		{
+			Maux[N*(N-1)]= (M[N*(N-2)] + M[(N*(N-2))+1] + M[N*(N-1)] + M[(N*(N-1))+1]) * divCuatro;
+			for (int i = 1; i < N-1; i++)
+			{
+				Maux[(N-1)*N + i] = ( M[(N-1-1)*N + i-1] +    M[(N-1-1)*N + i] + M[(N-1-1)*N + i+1]
+                            +   M[(N-1)*N + i-1] +      M[(N-1)*N + i] + M[(N-1)*N + i+1]) * divSeis;
+			}
+			Maux[(N-1)*N+ N-1] = ( M[(N-1)*N + N-1-1] + M[(N-1)*N + N-1] + M[(N-1-1)*N + N-1] + M[(N-1-1)*N + N-1-1] ) * divCuatro;
 		}
 		pthread_barrier_wait(&barrera);
 		primerValor= Maux[0];
@@ -131,6 +134,9 @@ void * funcion(void * arg)
 }
 
 
+/***************************************
+			FUNCION MAIN
+ ***************************************/
 int main(int argc, char const *argv[])
 {
 	T=atoi(argv[1]);
@@ -138,6 +144,7 @@ int main(int argc, char const *argv[])
 	pthread_t misPthread[T];
 	int threads_id[T];
 	double timetick;
+	double tiempoEnSeg;
 
 	divCuatro= 1.0/4.0;
 	divSeis= 1.0/6.0;
@@ -171,11 +178,21 @@ int main(int argc, char const *argv[])
 		pthread_join(misPthread[i],NULL);
 	}
 
-	for (int i = 0; i < N*N; i++)
+
+	tiempoEnSeg= dwalltime() - timetick;
+	//DESCOMENTAR SI SE QUIERE IMPRIMIR EL RESULTADO
+
+	/*
+	printf("Resultado:\n");
+	for (int i = 0; i < N; i++)
     {
-        printf("%f, ",M[i]);
-    }
-	printf("\nTiempo en segundos %f segundos y numero de iteraciones %d\n",dwalltime() - timetick,nroIteraciones);
+        for(int j=0; j<N; j++)
+        {
+            printf("%f, ",M[i*N+j]);
+        }
+        printf("\n");
+    }*/
+	printf("\nTiempo en segundos %f segundos y numero de iteraciones %d\n",tiempoEnSeg,nroIteraciones);
 
 	free(M);
 	free(Maux);

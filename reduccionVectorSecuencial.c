@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/time.h>
-#define VALORPRECISIONP 0.01
-#define VALORPRECISIONN -0.01
+#define VALORPRECISIONP 0.01 	//VALOR DE PRECISION POSITIVO
+#define VALORPRECISIONN -0.01 	//VALOR DE PRECISION NEGATIVO
 
 /***************************************
  FUNCION PARA CALCULAR TIEMPO
@@ -38,6 +38,7 @@ int main(int argc, char const *argv[])
 	/* DECLARACION DE VARIABLES */
 	int N= atoi(argv[1]);
 	double timetick;
+	double tiempoEnSeg;
 	float divDos= 1.0/2.0;
 	float divTres= 1.0/3.0;
 	float * Vauxiliar;
@@ -97,8 +98,9 @@ int main(int argc, char const *argv[])
 		nroIteraciones++;
 	}
 
+	tiempoEnSeg= dwalltime() - timetick;
 	//IMPRIME RESULTADO EN TIEMPO Y NUMERO DE ITERACIONES
-	printf("REDUCCION DE VECTOR SECUENCIAL: Tiempo en segundos %f y numero de iteraciones %d\n",dwalltime() - timetick,nroIteraciones);
+	printf("REDUCCION DE VECTOR SECUENCIAL: Tiempo en segundos %f y numero de iteraciones %d\n",tiempoEnSeg,nroIteraciones);
 
 
 	//DESCOMENTAR SI SE QUIERE IMPRIMIR EL VECTOR AL QUE CONVERGIO

@@ -2,10 +2,12 @@
 #include <stdio.h>
 #include <math.h>
 #include <sys/time.h>
-#define VALORPRECISIONP 0.01
-#define VALORPRECISIONN -0.01
+#define VALORPRECISIONP 0.01    //VALOR DE PRECISION POSITIVO
+#define VALORPRECISIONN -0.01   //VALOR DE PRECISION NEGATIVO
 
-//Para calcular tiempo
+/***************************************
+ FUNCION PARA CALCULAR TIEMPO
+ ***************************************/
 double dwalltime()
 {
     double sec;
@@ -16,7 +18,9 @@ double dwalltime()
     return sec;
 }
 
-//  Funcion del profe para valores randoms
+/***************************************
+    FUNCION QUE RETORNA UN VALOR RANDOM
+ ***************************************/
 double randFP(double min, double max) 
 {   
     double range = (max - min); 
@@ -24,6 +28,10 @@ double randFP(double min, double max)
     return min + (rand() / div); 
 }
 
+
+/***************************************
+            FUNCION MAIN
+ ***************************************/
 int main(int argc, char *argv[])
 {
     //Variables
@@ -32,6 +40,7 @@ int main(int argc, char *argv[])
     int converge;
     int N;
     double timetick;
+    double tiempoEnSeg;
     float diferencia;
     float divCuatro, divSeis, divNueve;
     int nroIteraciones= 0;
@@ -104,27 +113,6 @@ int main(int argc, char *argv[])
             
         }
         
-        //  CALCULO DE BANDAS LATERALES
-        // Primera y ultima fila
-        /*for(int i=1; i<N-1; i++ )
-        {
-            //Primera y ultima fila
-            Maux[i] =   (M[i-1] +        M[i] +      M[i+1] +
-                        M[1*N + i-1] +    M[1*N + i] +  M[1*N + i+1]) * divSeis;
-            
-            Maux[(N-1)*N + i] = ( M[(N-1-1)*N + i-1] +    M[(N-1-1)*N + i] + M[(N-1-1)*N + i+1]
-                            +   M[(N-1)*N + i-1] +      M[(N-1)*N + i] + M[(N-1)*N + i+1]) * divSeis;
-
-            //Primera y ultima columna
-            Maux[i*N] = ( M[(i-1)*N] +    M[(i-1)*N + 1] +
-                        M[i*N] +        M[i*N + 1] +
-                        M[(i+1)*N] +    M[(i+1)*N + 1] ) * divSeis;
-
-            Maux[i*N + (N-1)] = ( M[(i-1)*N - 1] +    M[(i-1)*N] +
-                                M[i*N - 1] +        M[i*N] +
-                                M[(i+1)*N - 1] +    M[(i+1)*N] ) * divSeis;
-        }*/
-        
         //  Swapeo de matrices
         swap = Maux;
         Maux = M;
@@ -143,25 +131,21 @@ int main(int argc, char *argv[])
             }
         }
         nroIteraciones++;
-        /*for(int i=0; i<N ; i++)
-        {
-            for(int j=0; j<N; j++)
-            {
-                diferencia = M[0] - M[i*N + j];
-                if( (diferencia > valorPresicion) || (diferencia < -valorPresicion))
-                {
-                    converge = 0;
-                    i= N;
-                    break;
-                }
-            }            
-        }*/
     }
 
-    for (int i = 0; i < N*N; i++)
+
+    tiempoEnSeg= dwalltime() - timetick;
+    //DESCOMENTAR SI SE QUIERE IMPRIMIR LA MATRIZ RESULTADO
+    /*
+    printf("Resultado:\n");
+    for (int i = 0; i < N; i++)
     {
-        printf("%f, ",M[i]);
-    }
-    printf("\nTiempo en segundos: %f y numero de iteraciones: %d\n", dwalltime() - timetick, nroIteraciones);
+        for(int j=0; j<N; j++)
+        {
+            printf("%f, ",M[i*N+j]);
+        }
+        printf("\n");
+    }*/
+    printf("\nTiempo en segundos: %f y numero de iteraciones: %d\n", tiempoEnSeg, nroIteraciones);
     
 }
