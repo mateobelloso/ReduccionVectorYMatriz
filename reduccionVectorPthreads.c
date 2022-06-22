@@ -44,8 +44,15 @@ void * funcion(void * arg)
 	int tid=*(int *) arg;	//RECUPERA SU ID
 	int inicio;
 	int final;
+	int inicioC;
+	int finalC;
 	float comparacion;
 	float primerValor;
+
+	//INICIO Y FINAL PARA EL FOR QUE CHEQUEA CONVERGENCIA
+	inicioC= tid * N / T;
+	finalC= inicioC + N / T;
+
 	//DEFINO EL INICIO Y FIN DE CADA TAREA SEGUN SU ID
 	if ((tid == 0) || (tid == T - 1))
 	{
@@ -54,6 +61,8 @@ void * funcion(void * arg)
 		{
 			inicio= (tid * N / T) + 1;
 			final= (inicio - 1 + N / T);
+			//LA TAREA 0 PROCESA EL PRIMER VALOR
+			Vauxiliar[0]= (V[0] + V[1]) * divDos;
 		}else	//LA ULTIMA TAREA VA A PROCESAR HASTA EL ANTEULTIMO VALOR YA QUE EL ULTIMO VALOR LO PROCESA APARTE
 		{
 			inicio= (tid * N / T);
@@ -61,17 +70,16 @@ void * funcion(void * arg)
 		}
 	}else	//LAS DEMAS TAREAS DEFINEN SU INICIO Y FINAL SEGUN SU ID
 	{
-		inicio= tid * N / T;
-		final= inicio + N / T;
+		inicio= inicioC;
+		final= finalC;
 	}
+
+	//TODOS LOS PROCESOS TIENE QUE ESPERAR A LA PRIMER TAREA QUE TERMINE DE PROCESAR LA PRIMERA POSICION
+	pthread_barrier_wait(&barrera);
+
 	//MIENTRAS NO CONVERGA
 	while(!convergio)
 	{
-		//LA TAREA 0 PROCESA EL PRIMER VALOR
-		if (tid == 0)
-		{
-			Vauxiliar[0]= (V[0] + V[1]) * divDos;
-		}
 		//PROCESAMIENTO GENERAL
 		for (int i = inicio; i < final; i++)
 		{
@@ -82,12 +90,12 @@ void * funcion(void * arg)
 		{
 			Vauxiliar[N-1]= (V[N-1] + V[N-2]) * divDos;
 		}
-		//TODOS LOS PROCESOS TIENE QUE ESPERAR A LA PRIMER TAREA QUE TERMINE DE PROCESAR LA PRIMERA POSICION
-		pthread_barrier_wait(&barrera);
+
 		//CADA TAREA SE GUARDA EL PRIMER VALOR CON EL CUAL VAN A CHEQUEAR SI SU PARTE DEL VECTOR CONVERGE
 		primerValor= Vauxiliar[0];
+
 		convergioV[tid]= 1;
-		for (int i = tid * N / T; i < tid * N / T + N / T; i++)
+		for (int i = inicioC; i < finalC; i++)
 		{
 			comparacion= primerValor - Vauxiliar[i];
 			//SI LA COMPARACION DA MAYOR QUE EL VALOR DE PRECISION POSITIVO O DA MENOR QUE EL VALOR DE PRECISION NEGATIVO SIGNIFICA QUE EL VECTOR NO CONVERGIO
@@ -115,6 +123,11 @@ void * funcion(void * arg)
 				}
 			}
 			nroIteraciones++;
+			if(!convergio)
+			{
+				//LA TAREA 0 PROCESA EL PRIMER VALOR
+				Vauxiliar[0]= (V[0] + V[1]) * divDos;
+			}
 		}
 		//LAS DEMAS TAREAS ESPERAN QUE LA TAREA 0 HAGA EL SWAPEO Y CHEQUEE LA CONVERGENCIA TOTAL
 		pthread_barrier_wait(&barrera);

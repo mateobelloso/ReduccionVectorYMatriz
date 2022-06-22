@@ -27,24 +27,19 @@ double randFP(double min, double max)
     return min + (rand() / div); 
 }
 
-
-int miID;
-int nrProcesos;
-int N;
-int convergio;
-int convergioaux;
-float *MRec;
-float *M;
-float *Maux;
-float *filaVecAbajo, *filaVecArriba;
-float primerValor;
-float divCuatro= 1.0/4.0;
-float divSeis= 1.0/6.0;
-float divNueve= 1.0/9.0;
-
-void fProcesoRoot()
+void fProcesoRoot(int N,int nrProcesos,int miID)
 {
-    float vecinoDer;
+    int convergio;
+    int convergioaux;
+    float *MRec;
+    float *M;
+    float *Maux;
+    float *filaVecAbajo;
+    float *swap;
+    float primerValor;
+    float divCuatro= 1.0/4.0;
+    float divSeis= 1.0/6.0;
+    float divNueve= 1.0/9.0;
     float comparacion;
     double timetick;
     double tiempoEnSeg;
@@ -56,6 +51,13 @@ void fProcesoRoot()
     
     //ALOCACION EN MEMORIA DE LA MATRIZ DE N x N ELEMENTOS
     M=(float *)malloc(sizeof(float)*N*N);
+    //ALOCACION DE MEMORIA PARA LAS MATRICES QUE RECIBE CADA PROCESO Y LA MATRIZ AUXILIAR
+    Maux=(float *)malloc(sizeof(float)*N*N/nrProcesos);
+    MRec=(float *)malloc(sizeof(float)*N*N/nrProcesos);
+
+    //ALOCACION DEL VECTOR PARA LAS FILAS RECIBIDAS DE LOS PROCESOS VECINOS
+    filaVecAbajo=(float *)malloc(sizeof(float)*N);
+    convergio=0;
 
     //INICIALIZACION DE MATRIZ
     for(int i=0; i<N; i++)
@@ -68,10 +70,10 @@ void fProcesoRoot()
 
     //COMIENZO A CONTAR EL TIEMPO ARRANCA EL PROCESAMIENTO
     timetick= dwalltime();
+    //REALIZO LA DIVISION DE CANTIDAD DE ELEMENTOS PARA CADA PROCESO
+    MPI_Scatter(M,N*N/nrProcesos,MPI_FLOAT,MRec,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
     while(!convergio)
     {
-        //REALIZO LA DIVISION DE CANTIDAD DE ELEMENTOS PARA CADA PROCESO
-        MPI_Scatter(M,N*N/nrProcesos,MPI_FLOAT,MRec,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
         //LE ENVIO A MI PROCESO SIGUIENTE MI ULTIMA FILA
         MPI_Send(&MRec[N*N/nrProcesos-N],N,MPI_FLOAT,miID+1,99,MPI_COMM_WORLD);
         //RECIBO DE MI PROCESO SIGUIENTE SU PRIMERA FILA
@@ -143,14 +145,18 @@ void fProcesoRoot()
             }
         }
 
+        swap= MRec;
+        MRec= Maux;
+        Maux= swap;
+
         //SE REALIZA LA OPERACION LAND EN LA VARIABLE DE CONVERGENCIA PARA CHEQUEAR SI TODOS LOS PROCESOS CONVERGIERON Y EL RESULTADO LO OBTIENEN TODOS LOS PROCESOS
         MPI_Allreduce(&convergioaux,&convergio,1,MPI_INT,MPI_LAND,MPI_COMM_WORLD);
 
-        //REALIZO EL GATHER DONDE RECIBO EL RESULTADO DE TODOS LOS PROCESOS Y LO ALMACENO EN LA MATRIZ ORIGINAL
-        MPI_Gather(Maux,N*N/nrProcesos,MPI_FLOAT,M,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
-
         nroIteraciones++;
     }
+
+    //REALIZO EL GATHER DONDE RECIBO EL RESULTADO DE TODOS LOS PROCESOS Y LO ALMACENO EN LA MATRIZ ORIGINAL
+    MPI_Gather(MRec,N*N/nrProcesos,MPI_FLOAT,M,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
 
     //PARO DE CONTAR TERMINO EL PROCESAMIENTO
     tiempoEnSeg= dwalltime() - timetick;
@@ -166,20 +172,43 @@ void fProcesoRoot()
     }*/
     printf("\nEl tiempo en segundos es %f y se realizaron %d iteraciones\n",tiempoEnSeg,nroIteraciones);
 
+    free(M);
+    free(Maux);
+    free(MRec);
+
 }
 
-void fProcesoDelMedio()
+void fProcesoDelMedio(int N,int nrProcesos,int miID)
 {
-    float vecinoIzq, vecinoDer;
-    float comparacion;
+    int convergio;
+    int convergioaux;
+    float *MRec;
+    float *M;
+    float *Maux;
+    float *filaVecAbajo, *filaVecArriba;
+    float *swap;
     float primerValor;
+    float divCuatro= 1.0/4.0;
+    float divSeis= 1.0/6.0;
+    float divNueve= 1.0/9.0;
+    float comparacion;
+
+    //ALOCACION DE MEMORIA PARA LAS MATRICES QUE RECIBE CADA PROCESO Y LA MATRIZ AUXILIAR
+    MRec=(float *)malloc(sizeof(float)*N*N/nrProcesos);
+    Maux=(float *)malloc(sizeof(float)*N*N/nrProcesos);
+
+    //ALOCACION DEL VECTOR PARA LAS FILAS RECIBIDAS DE LOS PROCESOS VECINOS
+    filaVecAbajo=(float *)malloc(sizeof(float)*N);
+    filaVecArriba=(float *)malloc(sizeof(float)*N);
+    convergio=0;
 
     int inicio= 1;
     int final= N / nrProcesos - 1;
+    //RECIBO LA CANTIDAD DE VALORES QUE TENGO QUE PROCESAR
+    MPI_Scatter(M,N*N/nrProcesos,MPI_FLOAT,MRec,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
     while(!convergio)
     {
-        //RECIBO LA CANTIDAD DE VALORES QUE TENGO QUE PROCESAR
-        MPI_Scatter(M,N*N/nrProcesos,MPI_FLOAT,MRec,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
+        
         //RECIBO DE MI PROCESO ANTERIOR SU ULTIMA FILA
         MPI_Recv(filaVecArriba,N,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
         //LE ENVIO A MI PROCESO ANTERIOR MI PRIMERA FILA
@@ -256,26 +285,50 @@ void fProcesoDelMedio()
             }
         }
 
+        swap= MRec;
+        MRec= Maux;
+        Maux= swap;
+
         //SE CHEQUEA LA CONVERGENCIA TOTAL DE LA MATRIZ
         MPI_Allreduce(&convergioaux,&convergio,1,MPI_INT,MPI_LAND,MPI_COMM_WORLD);
-
-        //SE LE ENVIA EL RESULTADO AL PROCESO 0 PARA QUE ESTE TENGA EL RESULTADO TOTAL DE LA MATRIZ
-        MPI_Gather(Maux,N*N/nrProcesos,MPI_FLOAT,M,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
     }
+    //SE LE ENVIA EL RESULTADO AL PROCESO 0 PARA QUE ESTE TENGA EL RESULTADO TOTAL DE LA MATRIZ
+    MPI_Gather(MRec,N*N/nrProcesos,MPI_FLOAT,M,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
+
+    free(MRec);
+    free(Maux);
 }
 
-void fProcesoUltimo()
+void fProcesoUltimo(int N,int nrProcesos,int miID)
 {
-    float vecinoIzq, vecinoDer;
-    float comparacion;
+    int convergio;
+    int convergioaux;
+    float *MRec;
+    float *M;
+    float *Maux;
+    float *filaVecArriba;
+    float *swap;
     float primerValor;
+    float divCuatro= 1.0/4.0;
+    float divSeis= 1.0/6.0;
+    float divNueve= 1.0/9.0;
+    float comparacion;
+
+
+    //ALOCACION DE MEMORIA PARA LAS MATRICES QUE RECIBE CADA PROCESO Y LA MATRIZ AUXILIAR
+    MRec=(float *)malloc(sizeof(float)*N*N/nrProcesos);
+    Maux=(float *)malloc(sizeof(float)*N*N/nrProcesos);
+
+    //ALOCACION DEL VECTOR PARA LAS FILAS RECIBIDAS DE LOS PROCESOS VECINOS
+    filaVecArriba=(float *)malloc(sizeof(float)*N);
+    convergio=0;
 
     int inicio= 1;
     int final= N / nrProcesos - 1;
+    //RECIBO LOS ELEMENTOS QUE TENGO QUE PROCESAR
+    MPI_Scatter(M,N*N/nrProcesos,MPI_FLOAT,MRec,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
     while(!convergio)
     {
-        //RECIBO LOS ELEMENTOS QUE TENGO QUE PROCESAR
-        MPI_Scatter(M,N*N/nrProcesos,MPI_FLOAT,MRec,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
         //RECIBO DE MI PROCESO ANTERIOR SU ULTIMA FILA
         MPI_Recv(filaVecArriba,N,MPI_FLOAT,miID-1,99,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
         //LE ENVIO A MI PROCESO ANTERIOR MI PRMERA FILA
@@ -345,12 +398,18 @@ void fProcesoUltimo()
             }
         }
 
+        swap= MRec;
+        MRec= Maux;
+        Maux= swap;
+
         //SE CHEQUEA SI LA MATRIZ CONVERGIO TOTALMENTE
         MPI_Allreduce(&convergioaux,&convergio,1,MPI_INT,MPI_LAND,MPI_COMM_WORLD);
-
-        //SE LE ENVIA AL PROCESO 0 EL RESULTADO DE LO PROCESADO PARA QUE TENGA LA MATRIZ TOTAL
-        MPI_Gather(Maux,N*N/nrProcesos,MPI_FLOAT,M,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
     }
+    //SE LE ENVIA AL PROCESO 0 EL RESULTADO DE LO PROCESADO PARA QUE TENGA LA MATRIZ TOTAL
+    MPI_Gather(MRec,N*N/nrProcesos,MPI_FLOAT,M,N*N/nrProcesos,MPI_FLOAT,0,MPI_COMM_WORLD);
+
+    free(MRec);
+    free(Maux);
 }
 
 
@@ -358,39 +417,28 @@ void fProcesoUltimo()
             FUNCION MAIN
  ***************************************/
 int main(int argc, char* argv[]){
+    int N,nrProcesos,miID;
     N= atoi(argv[1]);
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&miID);
     MPI_Comm_size(MPI_COMM_WORLD,&nrProcesos);
 
-    //ALOCACION DE MEMORIA PARA LAS MATRICES QUE RECIBE CADA PROCESO Y LA MATRIZ AUXILIAR
-    MRec=(float *)malloc(sizeof(float)*N*N/nrProcesos);
-    Maux=(float *)malloc(sizeof(float)*N*N/nrProcesos);
-    //ALOCACION DEL VECTOR PARA LAS FILAS RECIBIDAS DE LOS PROCESOS VECINOS
-    filaVecAbajo=(float *)malloc(sizeof(float)*N);
-    filaVecArriba=(float *)malloc(sizeof(float)*N);
-    convergio=0;
-
-    //SI NO SO EL PROCESO 0 NI EL ULTIMO SOY UN PROCESO DEL MEDIO
+    //SI NO SOY EL PROCESO 0 NI EL ULTIMO SOY UN PROCESO DEL MEDIO
     if((miID != 0) && (miID != nrProcesos-1))
     {
-        fProcesoDelMedio();
+        fProcesoDelMedio(N,nrProcesos,miID);
     }
     else
     {
         //SI SOY EL PROCESO 0
         if (miID == 0)
         {
-            fProcesoRoot();
-            free(M);
+            fProcesoRoot(N,nrProcesos,miID);
         }else
         {
-            fProcesoUltimo();
+            fProcesoUltimo(N,nrProcesos,miID);
         }
     }
-
-    free(MRec);
-    free(Maux);
     
     MPI_Finalize();
     return 0;

@@ -30,7 +30,7 @@ double randFP(double min, double max)
 //DECLARACION DE VARIABLES
 float *M, *Maux;
 float *swap;
-int * convergioV;
+int *convergioV;
 int convergio;
 int N,T;
 float divCuatro, divSeis, divNueve;
@@ -43,27 +43,37 @@ void * funcion(void * arg)
 	int tid= *(int *)arg;
 	int inicio;
 	int final;
+	int inicioC;
+	int finalC;
 	float comparacion;
 	float primerValor;
 
 	//INICIO Y FINAL DE FILA A PROCESAR DE CADA TAREA
 	inicio= tid * N / T;
 	final= inicio + N /T;
+	//INICIO Y FINAL PARA EL FOR QUE CHEQUEA LA CONVERGENCIA
+	inicioC= tid * N * N / T;
+	finalC= inicioC + N * N / T;
 	if (tid==0)	//LA TAREA 0 VA A COMENZAR A PROCESAR 1 FILA DESPUES YA QUE LA PRIMERA LA HACE APARTE
 	{
 		inicio++;
+		//PRIMER VALOR O PRIMERA ESQUINA
+		Maux[0]= (M[0] + M[1] + M[N] + M[N+1]) * divCuatro;
 	}
 	if (tid==T-1)	//LA TAREA ULTIMA VA A TERMINAR DE PROCESAR 1 FILA ANTES A QUE LA ULTIMA FILA LA HACE APARTE
 	{
 		final--;
 	}
+
+	//ESPERO QUE TODAS LAS TAREAS TERMINEN SU PROCESAMIENTO YA QUE NECESITO EL RESULTADO DE LA PRIMERA POSICION PARA CHEQUEAR CONVERGENCIA
+	pthread_barrier_wait(&barrera);
+
 	//MIENTRA NO CONVERGA
 	while(!convergio)
 	{
-		//PRIMERA Y SEGUNDA ESQUINA Y BANDA LATERAL SUPERIOR
+		//BANDA LATERAL SUPERIOR Y SEGUNDA ESQUINA
 		if (tid == 0)
 		{
-			Maux[0]= (M[0] + M[1] + M[N] + M[N+1]) * divCuatro;
 			for (int i = 1; i < N-1; i++)
 			{
 				Maux[i] =   (M[i-1] +        M[i] +      M[i+1] +
@@ -104,15 +114,13 @@ void * funcion(void * arg)
 			}
 			Maux[(N-1)*N+ N-1] = ( M[(N-1)*N + N-1-1] + M[(N-1)*N + N-1] + M[(N-1-1)*N + N-1] + M[(N-1-1)*N + N-1-1] ) * divCuatro;
 		}
-		//ESPERO QUE TODAS LAS TAREAS TERMINEN SU PROCESAMIENTO YA QUE NECESITO EL RESULTADO DE LA PRIMERA POSICION PARA CHEQUEAR CONVERGENCIA
-		pthread_barrier_wait(&barrera);
 
 		//ME GUARDO EL RESULTADO DEL PRIMER VALOR
 		primerValor= Maux[0];
 
 		//CHEQUEO SI MI PARTE CONVERGIO
 		convergioV[tid]= 1;
-		for (int i = tid * N * N / T; i < tid * N * N / T + N * N / T; i++)
+		for (int i = inicioC; i < finalC; i++)
 		{
 			comparacion= primerValor - Maux[i];
 			if ((comparacion > VALORPRECISIONP) || (comparacion < VALORPRECISIONN))
@@ -140,6 +148,11 @@ void * funcion(void * arg)
 				}
 			}
 			nroIteraciones++;
+			if(!convergio)
+			{
+				//LA TAREA 0 PROCESA EL PRIMER VALOR O LA PRIMER ESQUINA
+				Maux[0]= (M[0] + M[1] + M[N] + M[N+1]) * divCuatro;
+			}
 		}
 		//LAS DEMAS TAREAS ESPERAN A LA TAREA 0 QUE SWAPE LAS MATRICES Y EL CHEQUEO DE CONVERGENCIA TOTAL
 		pthread_barrier_wait(&barrera);
